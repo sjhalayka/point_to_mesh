@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 		all_points.push_back(v);
 	}
 
-	convert_point_cloud_to_mesh(all_points, 50, "out.stl");
+	convert_point_cloud_to_mesh(all_points, 20, "out.stl");
 
 	return 0;
 
