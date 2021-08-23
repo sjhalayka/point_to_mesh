@@ -396,16 +396,8 @@ void convert_point_cloud_to_mesh(const vector<vertex_3>& points, size_t res, con
 			field_max = field[i];
 	}
 
-
-
-
-
 	for (size_t i = 0; i < field.size(); i++)
-	{
 		field[i] /= field_max;
-
-		//field[i] = pow(field[i], 20.0f);
-	}
 
 	tesselate_field(field, triangles, 0.5f, curr_x_min, curr_x_max, res);
 
