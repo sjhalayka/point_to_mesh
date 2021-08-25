@@ -100,9 +100,18 @@ void add_field_border(vector<float>& values, const float border_value, float& gr
 
 	// Stuff new vector with old vector values
 	for (size_t x = 0; x < res; x++)
+	{
 		for (size_t y = 0; y < res; y++)
+		{
 			for (size_t z = 0; z < res; z++)
-				new_values[(x + 1) * new_res * new_res + (y + 1) * new_res + (z + 1)] = values[x * res * res + y * res + z];
+			{
+				if (1)//x < res / 2)
+					new_values[(x + 1) * new_res * new_res + (y + 1) * new_res + (z + 1)] = values[x * res * res + y * res + z];
+				else
+					new_values[(x + 1) * new_res * new_res + (y + 1) * new_res + (z + 1)] = 0;
+			}
+		}
+	}
 
 	values = new_values;
 	grid_min = new_grid_min;
@@ -292,10 +301,20 @@ void tesselate_field(const vector<float>& values, vector<triangle>& triangle_lis
 }
 
 
-void convert_point_cloud_to_mesh(const vector<vertex_3>& points, size_t res, const char* const filename)
+
+
+
+
+void convert_point_cloud_to_mesh(const char* const points_filename, size_t res, const char* const stl_filename)
 {
 	vector<float> field;
 	field.resize(res * res * res, 0.0);
+
+	ifstream in_file(points_filename, ios_base::binary);
+
+	vector<vertex_3> buffer(1024*1024);
+
+	size_t last_read_count = 0;
 
 	float curr_x_min = numeric_limits<float>::max();
 	float curr_y_min = numeric_limits<float>::max();
@@ -304,66 +323,88 @@ void convert_point_cloud_to_mesh(const vector<vertex_3>& points, size_t res, con
 	float curr_y_max = numeric_limits<float>::min();
 	float curr_z_max = numeric_limits<float>::min();
 
-	for (size_t i = 0; i < points.size(); i++)
+	do
 	{
+		in_file.read(reinterpret_cast<char*>(&buffer[0]), buffer.size() * 3 * sizeof(float));
 
+		last_read_count = in_file.gcount() / 3 / sizeof(float);
 
-		if (points[i].x < curr_x_min)
-			curr_x_min = points[i].x;
+		for (size_t i = 0; i < last_read_count; i++)
+		{
+			if (buffer[i].x < curr_x_min)
+				curr_x_min = buffer[i].x;
 
-		if (points[i].x > curr_x_max)
-			curr_x_max = points[i].x;
+			if (buffer[i].x > curr_x_max)
+				curr_x_max = buffer[i].x;
 
-		if (points[i].y < curr_y_min)
-			curr_y_min = points[i].y;
+			if (buffer[i].y < curr_y_min)
+				curr_y_min = buffer[i].y;
 
-		if (points[i].y > curr_y_max)
-			curr_y_max = points[i].y;
+			if (buffer[i].y > curr_y_max)
+				curr_y_max = buffer[i].y;
 
-		if (points[i].z < curr_z_min)
-			curr_z_min = points[i].z;
+			if (buffer[i].z < curr_z_min)
+				curr_z_min = buffer[i].z;
 
-		if (points[i].z > curr_z_max)
-			curr_z_max = points[i].z;
-	}
+			if (buffer[i].z > curr_z_max)
+				curr_z_max = buffer[i].z;
+		}
+
+	} while (last_read_count > 0);
+
 
 	float x_extent = curr_x_max - curr_x_min;
 	float y_extent = curr_y_max - curr_y_min;
 	float z_extent = curr_z_max - curr_z_min;
 
-	for (size_t i = 0; i < points.size(); i++)
+	in_file.close();
+	in_file.open(points_filename, ios_base::binary);
+
+	do
 	{
+		in_file.read(reinterpret_cast<char*>(&buffer[0]), buffer.size() * 3 * sizeof(float));
 
-		float x_location = points[i].x - curr_x_min;
-		size_t x_index = static_cast<size_t>(static_cast<double>(res)* (x_location / x_extent));
+		last_read_count = in_file.gcount() / 3 / sizeof(float);
 
-		if (x_index >= res)
-			x_index = res - 1;
+		for (size_t i = 0; i < last_read_count; i++)
+		{
+			float x_location = buffer[i].x - curr_x_min;
+			size_t x_index = static_cast<size_t>(static_cast<double>(res) * (x_location / x_extent));
 
-		float y_location = points[i].y - curr_y_min;
-		size_t y_index = static_cast<size_t>(static_cast<double>(res) * (y_location / y_extent));
+			if (x_index >= res)
+				x_index = res - 1;
 
-		if (y_index >= res)
-			y_index = res - 1;
+			float y_location = buffer[i].y - curr_y_min;
+			size_t y_index = static_cast<size_t>(static_cast<double>(res) * (y_location / y_extent));
 
-		float z_location = points[i].z - curr_z_min;
-		size_t z_index = static_cast<size_t>(static_cast<double>(res) * (z_location / z_extent));
+			if (y_index >= res)
+				y_index = res - 1;
 
-		if (z_index >= res)
-			z_index = res - 1;
+			float z_location = buffer[i].z - curr_z_min;
+			size_t z_index = static_cast<size_t>(static_cast<double>(res) * (z_location / z_extent));
 
-		size_t index = z_index * res * res;
-		index += y_index * res;
-		index += x_index;
+			if (z_index >= res)
+				z_index = res - 1;
 
-		field[index] += 1;
+			size_t index = z_index * res * res;
+			index += y_index * res;
+			index += x_index;
 
-		if (field[index] > 50)
-			field[index] = 50;
-	}
+			field[index] += 1;
+
+			if (field[index] > 50)
+				field[index] = 50;
+
+		}
+
+	} while (last_read_count > 0);
+
+
+
+
 
 	add_field_border(field, 0.0f, curr_x_min, curr_x_max, res);
-
+	
 
 	vector<triangle> triangles;
 
@@ -401,7 +442,7 @@ void convert_point_cloud_to_mesh(const vector<vertex_3>& points, size_t res, con
 
 	tesselate_field(field, triangles, 0.5f, curr_x_min, curr_x_max, res);
 
-	write_triangles_to_binary_stereo_lithography_file(triangles, filename);
+	write_triangles_to_binary_stereo_lithography_file(triangles, stl_filename);
 }
 
 

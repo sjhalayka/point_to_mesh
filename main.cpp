@@ -3,26 +3,7 @@
 
 int main(int argc, char **argv)
 {
-	ifstream infile("points.txt");
-
-	string line;
-
-	while (getline(infile, line))
-	{
-		if (line == "")
-			continue;
-
-		istringstream iss(line);
-
-		vertex_3 v;
-		iss >> v.x;
-		iss >> v.y;
-		iss >> v.z;
-
-		all_points.push_back(v);
-	}
-
-	convert_point_cloud_to_mesh(all_points, 20, "out.stl");
+	convert_point_cloud_to_mesh("points.bin", 10, "out.stl");
 
 	return 0;
 

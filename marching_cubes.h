@@ -61,7 +61,6 @@ public:
 	float y;
 	float z;
 
-	size_t index;
 
 	inline const void normalize(void)
 	{
